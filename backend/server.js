@@ -10,30 +10,27 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Ensure firebaseAdminKey.json is correctly loaded
+// ✅ Load Firebase Admin SDK
 const serviceAccountPath = path.join(__dirname, "firebaseAdminKey.json");
 if (!fs.existsSync(serviceAccountPath)) {
   console.error("❌ Firebase Admin Key is missing! Please add firebaseAdminKey.json to the backend folder.");
   process.exit(1);
 }
-
 const serviceAccount = require(serviceAccountPath);
 
-// ✅ Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "mystage-music.appspot.com", // Allow env-based storage
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "mystage-music.appspot.com", // Can be updated for cloud storage
 });
 
 // ✅ PostgreSQL Connection
 const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: String(process.env.DB_PASS), // ✅ Ensures password is a string
-    port: process.env.DB_PORT,
-  });
-  
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: String(process.env.DB_PASS), // Ensure password is a string
+  port: process.env.DB_PORT,
+});
 
 // ✅ Middleware
 app.use(cors());
@@ -70,7 +67,7 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// 📌 **POST /api/profile - Save or Update User Profile**
+// 📌 **POST /api/profile - Create User Profile**
 app.post("/api/profile", verifyToken, upload.single("profilePic"), async (req, res) => {
   const { uid: firebase_uid } = req.user; // Ensure correct user ID
   const profilePicUrl = req.file ? `/uploads/${req.file.filename}` : null;
@@ -87,7 +84,7 @@ app.post("/api/profile", verifyToken, upload.single("profilePic"), async (req, r
       [firebase_uid, profilePicUrl]
     );
 
-    res.json({ message: "Profile updated successfully", user: result.rows[0] });
+    res.json({ message: "Profile created successfully", user: result.rows[0] });
   } catch (error) {
     console.error("Database Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -107,6 +104,47 @@ app.get("/api/profile", verifyToken, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: "User not found" });
 
     res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Database Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// 📌 **PUT /api/profile - Update Profile Picture**
+app.put("/api/profile", verifyToken, upload.single("profilePic"), async (req, res) => {
+  const { uid: firebase_uid } = req.user;
+  const profilePicUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+  if (!profilePicUrl) return res.status(400).json({ error: "New profile picture is required" });
+
+  try {
+    const result = await pool.query(
+      `UPDATE user_profiles SET profile_pic_url = $1 WHERE firebase_uid = $2 RETURNING *`,
+      [profilePicUrl, firebase_uid]
+    );
+
+    if (result.rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+    res.json({ message: "Profile updated successfully", user: result.rows[0] });
+  } catch (error) {
+    console.error("Database Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// 📌 **DELETE /api/profile - Delete User Profile**
+app.delete("/api/profile", verifyToken, async (req, res) => {
+  const { uid: firebase_uid } = req.user;
+
+  try {
+    const result = await pool.query(
+      `DELETE FROM user_profiles WHERE firebase_uid = $1 RETURNING *`,
+      [firebase_uid]
+    );
+
+    if (result.rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+    res.json({ message: "Profile deleted successfully" });
   } catch (error) {
     console.error("Database Error:", error);
     res.status(500).json({ error: "Internal Server Error" });

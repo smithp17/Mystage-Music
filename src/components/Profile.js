@@ -4,6 +4,8 @@ import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const BASE_URL = "http://localhost:5000"; // ✅ Change this when deploying
+
 const Profile = () => {
   const [profilePic, setProfilePic] = useState(null);
   const [profilePicUrl, setProfilePicUrl] = useState("");
@@ -16,10 +18,16 @@ const Profile = () => {
       if (user) {
         const token = await user.getIdToken();
         try {
-          const response = await axios.get("http://localhost:5000/api/profile", {
+          const response = await axios.get(`${BASE_URL}/api/profile`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          setProfilePicUrl(response.data.profile_pic_url);
+
+          if (response.data.profile_pic_url) {
+            const imageUrl = response.data.profile_pic_url.startsWith("http")
+              ? response.data.profile_pic_url
+              : `${BASE_URL}${response.data.profile_pic_url}`;
+            setProfilePicUrl(imageUrl);
+          }
         } catch (error) {
           console.error("Error fetching profile:", error);
         }
@@ -49,17 +57,84 @@ const Profile = () => {
     formData.append("profilePic", profilePic);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/profile", formData, {
+      const response = await axios.post(`${BASE_URL}/api/profile`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
-      setProfilePicUrl(response.data.user.profile_pic_url);
+
+      if (response.data.user.profile_pic_url) {
+        const imageUrl = response.data.user.profile_pic_url.startsWith("http")
+          ? response.data.user.profile_pic_url
+          : `${BASE_URL}${response.data.user.profile_pic_url}`;
+        setProfilePicUrl(imageUrl);
+      }
+
       alert("Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
       alert("Error saving profile picture.");
+    }
+
+    setLoading(false);
+  };
+
+  const handleUpdate = async () => {
+    if (!profilePic) {
+      alert("Please select a new profile picture!");
+      return;
+    }
+
+    setLoading(true);
+    const user = auth.currentUser;
+    const token = await user.getIdToken();
+    const formData = new FormData();
+    formData.append("profilePic", profilePic);
+
+    try {
+      const response = await axios.put(`${BASE_URL}/api/profile`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data.user.profile_pic_url) {
+        const imageUrl = response.data.user.profile_pic_url.startsWith("http")
+          ? response.data.user.profile_pic_url
+          : `${BASE_URL}${response.data.user.profile_pic_url}`;
+        setProfilePicUrl(imageUrl);
+      }
+
+      alert("Profile picture updated successfully!");
+    } catch (error) {
+      console.error("Error updating profile picture:", error);
+      alert("Error updating profile picture.");
+    }
+
+    setLoading(false);
+  };
+
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete your profile?");
+    if (!confirmDelete) return;
+
+    setLoading(true);
+    const user = auth.currentUser;
+    const token = await user.getIdToken();
+
+    try {
+      await axios.delete(`${BASE_URL}/api/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      alert("Profile deleted successfully!");
+      await signOut(auth);
+      navigate("/register");
+    } catch (error) {
+      console.error("Error deleting profile:", error);
+      alert("Error deleting profile.");
     }
 
     setLoading(false);
@@ -77,16 +152,62 @@ const Profile = () => {
   };
 
   return (
-    <div>
-      <h2>Profile</h2>
-      {profilePicUrl && <img src={`http://localhost:5000${profilePicUrl}`} alt="Profile" width={150} />}
-      <input type="file" onChange={handleProfilePicUpload} />
-      <button onClick={handleSave} disabled={loading}>
-        {loading ? "Saving..." : "Save Profile Picture"}
-      </button>
-      <button onClick={handleSignOut} style={{ marginTop: "10px", backgroundColor: "red", color: "white" }}>
-        Sign Out
-      </button>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="bg-white shadow-lg rounded-lg p-6 max-w-lg w-full text-center">
+        <h2 className="text-3xl font-semibold mb-4 text-gray-900">Profile</h2>
+
+        <div className="flex justify-center">
+          {profilePicUrl ? (
+            <img
+              src={profilePicUrl}
+              alt="Profile"
+              className="w-32 h-32 rounded-full shadow-lg border border-gray-300"
+            />
+          ) : (
+            <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+              No Image
+            </div>
+          )}
+        </div>
+
+        <label className="mt-4 block text-gray-700 font-medium">
+          Upload Profile Picture
+          <input type="file" className="hidden" onChange={handleProfilePicUpload} />
+        </label>
+
+        <div className="mt-4 space-y-3">
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center"
+          >
+            {loading ? "Saving..." : "Save Profile Picture"}
+          </button>
+
+          <button
+            onClick={handleUpdate}
+            disabled={loading}
+            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center"
+          >
+            {loading ? "Updating..." : "Update Profile Picture"}
+          </button>
+
+          <button
+            onClick={handleDelete}
+            disabled={loading}
+            className="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-900 transition flex items-center justify-center"
+          >
+            {loading ? "Deleting..." : "Delete Profile"}
+          </button>
+
+          <button
+            onClick={handleSignOut}
+            className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition flex items-center justify-center"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -5,14 +5,14 @@ import { getAnalytics } from "firebase/analytics";
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID
+  apiKey: "AIzaSyAbLXrA1LsXhoMgo-S7GH_Xotg-2tKu0D8",
+  authDomain: "mystage-music.firebaseapp.com",
+  projectId: "mystage-music",
+  storageBucket: "mystage-music.appspot.com",  // ✅ Corrected storageBucket URL
+  messagingSenderId: "934911299047",
+  appId: "1:934911299047:web:a093e501bed7d4c3fb4142",
+  measurementId: "G-WCQ6WH5D6H"
 };
-
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
