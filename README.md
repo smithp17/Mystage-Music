@@ -1,70 +1,145 @@
-# Getting Started with Create React App
+# 🎵 Mystage Music - Full-Stack App (React + Node.js + PostgreSQL + Firebase)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A **modern full-stack application** built with **React, Node.js, PostgreSQL, and Firebase Authentication**, designed for **scalability** on **Google Cloud Platform (GCP)**.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Features Implemented (So Far)
+### 🔹 User Authentication with Firebase
+- **User Registration, Login, and Logout** via Firebase Authentication.
+- **Secure Token Validation** using Firebase Admin SDK.
+- **Unique Firebase UID** links users to their profiles in PostgreSQL.
 
-### `npm start`
+### 🔹 CRUD Operations (Profile Management)
+| **Operation** | **API Endpoint** | **Description** |
+|--------------|----------------|----------------|
+| **Create Profile** | `POST /api/profile` | Upload profile picture & save details |
+| **Read Profile** | `GET /api/profile` | Retrieve user profile |
+| **Update Profile** | `PUT /api/profile` | Update profile picture |
+| **Delete Profile** | `DELETE /api/profile` | Remove user profile from the database |
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 🔹 PostgreSQL Database Schema
+```sql
+CREATE TABLE user_profiles (
+    id SERIAL PRIMARY KEY,
+    firebase_uid VARCHAR(255) UNIQUE NOT NULL,
+    profile_pic_url TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 🏗️ Next Steps: Building Scalable Cloud Infrastructure on GCP
+Our goal is to build a highly scalable infrastructure for modern applications.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 🔹 Example Workflow (Cloud Storage Usage)
+1. User uploads a file (CSV, image, JSON) from the React frontend.
+2. File is stored in a Google Cloud Storage (GCS) bucket (`gs://your-project-data`).
+3. A Pub/Sub event triggers a Cloud Function.
+4. Cloud Function processes the file (e.g., image resizing, metadata extraction, data transformation).
+5. Processed data is stored in PostgreSQL (if required for querying).
 
-### `npm run build`
+### 🔹 Scalable Cloud Components (Planned)
+| **Component** | **Technology Used** | **Why?** |
+|--------------|-------------------|----------|
+| **Frontend** | React + Firebase Hosting + Cloud CDN | Fast, globally distributed |
+| **Auth** | Firebase Authentication | Secure user management |
+| **Backend** | Node.js + Express + Cloud Run | Auto-scaling API |
+| **Database** | Cloud SQL (PostgreSQL) | Scalable relational DB |
+| **Storage** | Google Cloud Storage | Secure, object-based storage |
+| **Processing** | Cloud Functions + Dataflow | Serverless event-driven processing |
+| **Event Handling** | Pub/Sub | Asynchronous processing |
+| **Monitoring** | Cloud Logging + Cloud Trace | Observability & debugging |
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 🛠️ Setup Instructions
+### 1️⃣ Clone the Repository
+```sh
+git clone https://github.com/yourusername/mystage-music.git
+cd mystage-music
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 2️⃣ Backend Setup
+Install dependencies:
+```sh
+cd backend
+npm install
+```
 
-### `npm run eject`
+Create a `.env` file:
+```sh
+DB_USER=your_postgres_user
+DB_HOST=your_postgres_host
+DB_NAME=your_database_name
+DB_PASS=your_database_password
+DB_PORT=5432
+FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Start the server:
+```sh
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 3️⃣ Frontend Setup
+Install dependencies:
+```sh
+cd ../frontend
+npm install
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Create a `.env` file:
+```sh
+REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+REACT_APP_FIREBASE_PROJECT_ID=your_firebase_project_id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+REACT_APP_FIREBASE_APP_ID=your_firebase_app_id
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Start the frontend:
+```sh
+npm start
+```
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🌍 Deployment Plan on Google Cloud Platform (GCP)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Deploy Backend on Cloud Run
+```sh
+gcloud builds submit --tag gcr.io/your-project-id/backend
+gcloud run deploy backend-service --image gcr.io/your-project-id/backend --platform managed --port 5000 --allow-unauthenticated
+```
 
-### Code Splitting
+### Deploy Frontend on Firebase Hosting
+```sh
+npm run build
+firebase deploy
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Set Up Cloud SQL for PostgreSQL
+```sh
+gcloud sql instances create mystage-db --database-version=POSTGRES_14 --cpu=2 --memory=8GiB --region=us-central1
+gcloud sql databases create mystage_music --instance=mystage-db
+```
 
-### Analyzing the Bundle Size
+### Enable Cloud Storage & Pub/Sub for File Processing
+```sh
+gcloud pubsub topics create profile-picture-processing
+gcloud storage buckets create gs://your-project-data --location=us-central1
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## 📌 Contributing
+Want to contribute? Please fork the repo and submit a pull request!
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 📌 License
+This project is **MIT Licensed**.
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+🎉 Congratulations! This README provides a clear roadmap for the project.
+Let me know if you'd like to tweak any sections! 🚀🔥
