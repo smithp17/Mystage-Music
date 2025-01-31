@@ -10,6 +10,7 @@ const Profile = () => {
   const [profilePic, setProfilePic] = useState(null);
   const [profilePicUrl, setProfilePicUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,10 +24,7 @@ const Profile = () => {
           });
 
           if (response.data.profile_pic_url) {
-            const imageUrl = response.data.profile_pic_url.startsWith("http")
-              ? response.data.profile_pic_url
-              : `${BASE_URL}${response.data.profile_pic_url}`;
-            setProfilePicUrl(imageUrl);
+            setProfilePicUrl(response.data.profile_pic_url);
           }
         } catch (error) {
           console.error("Error fetching profile:", error);
@@ -51,30 +49,28 @@ const Profile = () => {
     }
 
     setLoading(true);
+    setProcessing(true);
     const user = auth.currentUser;
     const token = await user.getIdToken();
     const formData = new FormData();
     formData.append("profilePic", profilePic);
 
     try {
-      const response = await axios.post(`${BASE_URL}/api/profile`, formData, {
+      await axios.post(`${BASE_URL}/api/profile`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
 
-      if (response.data.user.profile_pic_url) {
-        const imageUrl = response.data.user.profile_pic_url.startsWith("http")
-          ? response.data.user.profile_pic_url
-          : `${BASE_URL}${response.data.user.profile_pic_url}`;
-        setProfilePicUrl(imageUrl);
-      }
+      alert("Profile picture uploaded! Processing...");
 
-      alert("Profile updated successfully!");
+      // Poll for processed image
+      pollForProcessedImage(user, token);
     } catch (error) {
       console.error("Error updating profile:", error);
       alert("Error saving profile picture.");
+      setProcessing(false);
     }
 
     setLoading(false);
@@ -87,33 +83,60 @@ const Profile = () => {
     }
 
     setLoading(true);
+    setProcessing(true);
     const user = auth.currentUser;
     const token = await user.getIdToken();
     const formData = new FormData();
     formData.append("profilePic", profilePic);
 
     try {
-      const response = await axios.put(`${BASE_URL}/api/profile`, formData, {
+      await axios.put(`${BASE_URL}/api/profile`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
 
-      if (response.data.user.profile_pic_url) {
-        const imageUrl = response.data.user.profile_pic_url.startsWith("http")
-          ? response.data.user.profile_pic_url
-          : `${BASE_URL}${response.data.user.profile_pic_url}`;
-        setProfilePicUrl(imageUrl);
-      }
+      alert("Profile picture updated! Processing...");
 
-      alert("Profile picture updated successfully!");
+      // Poll for processed image
+      pollForProcessedImage(user, token);
     } catch (error) {
       console.error("Error updating profile picture:", error);
       alert("Error updating profile picture.");
+      setProcessing(false);
     }
 
     setLoading(false);
+  };
+
+  const pollForProcessedImage = async (user, token) => {
+    let attempts = 0;
+    const maxAttempts = 10;
+    const delay = 3000; // Poll every 3 seconds
+
+    while (attempts < maxAttempts) {
+      try {
+        const response = await axios.get(`${BASE_URL}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.data.profile_pic_url) {
+          setProfilePicUrl(response.data.profile_pic_url);
+          alert("Profile picture updated successfully!");
+          setProcessing(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Error polling for processed image:", error);
+      }
+
+      attempts++;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    alert("Profile picture processing took too long. Try refreshing later.");
+    setProcessing(false);
   };
 
   const handleDelete = async () => {
@@ -165,7 +188,7 @@ const Profile = () => {
             />
           ) : (
             <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-              No Image
+              {processing ? "Processing..." : "No Image"}
             </div>
           )}
         </div>
